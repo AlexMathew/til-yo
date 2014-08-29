@@ -24,8 +24,7 @@ def send_yo(api_token, link):
 
 
 def start():
-	with open("api_token.txt", "r") as f:
-		api_token = f.read()
+	api_token = os.environ["API_TOKEN"]
 	urlparse.uses_netloc.append("postgres")
 	url = urlparse.urlparse(os.environ["DATABASE_URL"])
 	conn = psycopg2.connect(
