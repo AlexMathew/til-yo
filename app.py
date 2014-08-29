@@ -1,5 +1,4 @@
 import requests
-import butler
 import os
 import urlparse
 import psycopg2
@@ -8,9 +7,8 @@ import psycopg2
 def get_posts(cur):
 	r = requests.get('http://reddit.com/r/todayilearned/hot.json')
 	content = r.json()
-	b = butler.Butler(content)
 	articles = cur.execute("SELECT id FROM REDDIT")
-	for child in b.find(["data", "children"]):
+	for child in content["data"]["children"]:
 		if int(child["data"]["ups"]) > 1000 and child["data"]["id"] not in articles:
 			post_data = (child["data"]["id"], child["data"]["permalink"], int(child["data"]["ups"]))
 			yo = send_yo(api_token, "http://reddit.com" + child["data"]["permalink"])
