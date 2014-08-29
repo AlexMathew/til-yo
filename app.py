@@ -1,18 +1,20 @@
 import requests
 import butler
-import pymongo
+import os
+import urlparse
+import psycopg2
 
 
-def get_posts(til):
+def get_posts(cur):
 	r = requests.get('http://reddit.com/r/todayilearned/hot.json')
 	content = r.json()
 	b = butler.Butler(content)
-	articles = til.find({}, {'_id': 1})
+	articles = cur.execute("SELECT id FROM REDDIT")
 	for child in b.find(["data", "children"]):
-		if child["data"]["ups"] > 1000 :
-			data = {"_id": child["data"]["id"], "link": child["data"]["permalink"], "ups": child["data"]["ups"]}
+		if int(child["data"]["ups"]) > 1000 and child["data"]["id"] not in articles:
+			post_data = (child["data"]["id"], child["data"]["permalink"], int(child["data"]["ups"]))
 			yo = send_yo(api_token, "http://reddit.com" + child["data"]["permalink"])
-			til.insert(data)
+			cur.execute("INSERT INTO REDDIT VALUES (%s)", post_data)
 	return
 
 			
@@ -21,9 +23,20 @@ def send_yo(api_token, link):
 	return r
 
 
-with open("api_token.txt", "r") as f:
-	api_token = f.read()
-# connection = pymongo.Connection(<arguments>)
-# db = connection.reddit
-# til = db.til
-get_posts(til)
+def start():
+	with open("api_token.txt", "r") as f:
+		api_token = f.read()
+	urlparse.uses_netloc.append("postgres")
+	url = urlparse.urlparse(os.environ["DATABASE_URL"])
+	conn = psycopg2.connect(
+	    database=url.path[1:],
+	    user=url.username,
+	    password=url.password,
+	    host=url.hostname,
+	    port=url.port
+	)
+	cur = conn.cursor()
+	get_posts(cur)
+	return
+
+start()
